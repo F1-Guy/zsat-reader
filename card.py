@@ -102,16 +102,19 @@ class Device():
                         tag = "".join(i.strip('KEY_') for i in container)
 
                         message = tag
+
                         client_socket.sendto(
                             message.encode(), (server_name, server_port))
+                        sent = datetime.now()
 
                         modified_message, server_address = client_socket.recvfrom(
                             2048)
+                        received = datetime.now()
 
                         decoded_message = modified_message.decode()
 
                         print(
-                            f'{server_address} at {datetime.now()}: {decoded_message}')
+                            f'At {sent} sent: {message}\nAt {received} received: {decoded_message}\n')
 
                         if decoded_message == 'True':
                             s.set_pixels(green_check())
@@ -149,4 +152,5 @@ if __name__ == '__main__':
 
     client_socket = socket(AF_INET, SOCK_DGRAM)
     client_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+
     Device.run()

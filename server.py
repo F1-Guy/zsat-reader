@@ -1,6 +1,7 @@
 from socket import *
 import random
 import json
+from datetime import datetime
 
 if __name__ == '__main__':
     with open('config.json') as f:
@@ -15,9 +16,15 @@ if __name__ == '__main__':
 
     while True:
         message, clientAddress = serverSocket.recvfrom(2048)
-        print('Received message: ' + message.decode())
+        received = datetime.now()
+        decoded_message = message.decode()
+        print(f'At {received} received: {decoded_message}')
 
         # Server currently returns a random boolean
         # To be replaced with REST API call response
-        modifiedMessage = str(bool(random.getrandbits(1)))
-        serverSocket.sendto(modifiedMessage.encode(), clientAddress)
+        response = str(bool(random.getrandbits(1)))
+
+        serverSocket.sendto(response.encode(), clientAddress)
+        sent = datetime.now()
+
+        print(f'At {sent} sent: {response}\n')

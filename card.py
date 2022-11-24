@@ -1,5 +1,69 @@
+from socket import *
 import evdev
+import time
 from evdev import categorize, ecodes
+from sense_hat import SenseHat
+
+# Sense Hat setup
+s = SenseHat()
+green = (0, 255, 0)
+red = (255, 0, 0)
+nothing = (0, 0, 0)
+
+# Sense Hat display setup
+
+
+def green_check():
+    G = green
+    O = nothing
+    logo = [
+        O, O, O, O, O, O, O, O,
+        O, O, O, O, O, O, O, G,
+        O, O, O, O, O, O, G, O,
+        O, O, O, O, O, G, O, O,
+        G, O, O, O, G, O, O, O,
+        O, G, O, G, O, O, O, O,
+        O, O, G, O, O, O, O, O,
+        O, O, O, O, O, O, O, O,
+    ]
+    return logo
+
+
+def red_x():
+    R = red
+    O = nothing
+    logo = [
+        R, O, O, O, O, O, O, R,
+        O, R, O, O, O, O, R, O,
+        O, O, R, O, O, R, O, O,
+        O, O, O, R, R, O, O, O,
+        O, O, O, R, R, O, O, O,
+        O, O, R, O, O, R, O, O,
+        O, R, O, O, O, O, R, O,
+        R, O, O, O, O, O, O, R,
+    ]
+    return logo
+
+
+def red_q():
+    R = red
+    O = nothing
+    logo = [
+        O, O, O, R, O, O, O, O,
+        O, O, R, O, R, O, O, O,
+        O, O, R, O, R, O, O, O,
+        O, O, O, O, R, O, O, O,
+        O, O, O, O, R, O, O, O,
+        O, O, O, R, O, O, O, O,
+        O, O, O, O, O, O, O, O,
+        O, O, O, R, O, O, O, O,
+    ]
+    return logo
+
+
+# UDP server info
+server_name = 'Server IP'
+server_port = 30000
 
 
 class Device():
@@ -7,7 +71,6 @@ class Device():
 
     @classmethod
     def list(cls, show_all=False):
-        # list the available devices
         devices = [evdev.InputDevice(fn) for fn in evdev.list_devices()]
         if show_all:
             for device in devices:
@@ -17,7 +80,6 @@ class Device():
 
     @classmethod
     def connect(cls):
-        # connect to device if available
         try:
             device = [dev for dev in cls.list() if cls.name in dev.name][0]
             device = evdev.InputDevice(device.fn)
@@ -30,27 +92,50 @@ class Device():
     def run(cls):
         device = cls.connect()
         container = []
+
         try:
             device.grab()
-            # bind the device to the script
             print("RFID scanner is ready....")
-            print("Press Control + c to quit.")
+
             for event in device.read_loop():
-                # enter into an endeless read-loop
                 if event.type == ecodes.EV_KEY and event.value == 1:
                     digit = evdev.ecodes.KEY[event.code]
                     if digit == 'KEY_ENTER':
                         # create and dump the tag
                         tag = "".join(i.strip('KEY_') for i in container)
-                        print(tag)
+
+                        message = tag
+                        client_socket.sendto(
+                            message.encode(), (server_name, server_port))
+
+                        modified_message, server_address = client_socket.recvfrom(
+                            2048)
+
+                        decoded_message = modified_message.decode()
+                        print((decoded_message))
+
+                        if decoded_message == 'True':
+                            s.set_pixels(green_check())
+                        elif decoded_message == 'False':
+                            s.set_pixels(red_x())
+                        else:
+                            s.set_pixels(red_q())
+                            print("Error")
+
                         container = []
+
+                        time.sleep(1)
+                        s.clear(0, 0, 0)
+
                     else:
                         container.append(digit)
 
         except:
-            # catch all exceptions to be able release the device
             device.ungrab()
-            print('Quitting.')
+            print('WARNING: Qutting with exception')
 
 
-Device.run()
+if __name__ == '__main__':
+    client_socket = socket(AF_INET, SOCK_DGRAM)
+    client_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+    Device.run()

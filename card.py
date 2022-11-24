@@ -1,8 +1,10 @@
 from socket import *
 import evdev
 import time
+from datetime import datetime
 from evdev import categorize, ecodes
 from sense_hat import SenseHat
+import json
 
 # Sense Hat setup
 s = SenseHat()
@@ -61,11 +63,6 @@ def red_q():
     return logo
 
 
-# UDP server info
-server_name = 'Server IP'
-server_port = 30000
-
-
 class Device():
     name = 'Sycreader RFID Technology Co., Ltd SYC ID&IC USB Reader'
 
@@ -112,7 +109,9 @@ class Device():
                             2048)
 
                         decoded_message = modified_message.decode()
-                        print((decoded_message))
+
+                        print(
+                            f'{server_address} at {datetime.now()}: {decoded_message}')
 
                         if decoded_message == 'True':
                             s.set_pixels(green_check())
@@ -136,6 +135,18 @@ class Device():
 
 
 if __name__ == '__main__':
+    print("Don't forget to change the server IP and port in config.json")
+
+    with open('config.json') as f:
+        data = json.load(f)
+
+    # UDP server info
+    server_name = data.get('server_name', 'localhost')
+    server_port = data.get('port', 50000)
+
+    print(f'Connecting the server: {server_name}')
+    print(f'Server port is: {server_port}')
+
     client_socket = socket(AF_INET, SOCK_DGRAM)
     client_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
     Device.run()

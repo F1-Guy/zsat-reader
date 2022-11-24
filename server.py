@@ -1,17 +1,23 @@
 from socket import *
 import random
+import json
 
-serverPort = 30000
-serverSocket = socket(AF_INET, SOCK_DGRAM)
-serverSocket.bind(('', serverPort))
-print(
-    f'Server is ready to receive on port: {serverPort}')
+if __name__ == '__main__':
+    with open('config.json') as f:
+        data = json.load(f)
 
-while True:
-    message, clientAddress = serverSocket.recvfrom(2048)
-    print('Received message: ' + message.decode())
+    serverPort = data.get('port', 50000)
+    serverSocket = socket(AF_INET, SOCK_DGRAM)
+    serverSocket.bind(('', serverPort))
 
-    # Server currently returns a random boolean
-    # To be replaced with REST API call response
-    modifiedMessage = str(bool(random.getrandbits(1)))
-    serverSocket.sendto(modifiedMessage.encode(), clientAddress)
+    print(
+        f'Server is ready to receive on port: {serverPort}')
+
+    while True:
+        message, clientAddress = serverSocket.recvfrom(2048)
+        print('Received message: ' + message.decode())
+
+        # Server currently returns a random boolean
+        # To be replaced with REST API call response
+        modifiedMessage = str(bool(random.getrandbits(1)))
+        serverSocket.sendto(modifiedMessage.encode(), clientAddress)

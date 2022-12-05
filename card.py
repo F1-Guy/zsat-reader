@@ -79,10 +79,10 @@ class Device():
     def connect(cls):
         try:
             device = [dev for dev in cls.list() if cls.name in dev.name][0]
-            device = evdev.InputDevice(device.fn)
+            device = evdev.InputDevice(device.path)
             return device
         except IndexError:
-            print("Device not found.\n - Check if it is properly connected. \n - Check permission of /dev/input/ (see README.md)")
+            print("ERROR: Device not found.\n - Check if it is properly connected. \n - Check permission of /dev/input/ (see README.md)")
             exit()
 
     @classmethod
@@ -92,7 +92,7 @@ class Device():
 
         try:
             device.grab()
-            print("RFID scanner is ready....")
+            print("INFO: RFID scanner is ready....")
 
             for event in device.read_loop():
                 if event.type == ecodes.EV_KEY and event.value == 1:
@@ -101,10 +101,17 @@ class Device():
                         # create and dump the tag
                         tag = "".join(i.strip('KEY_') for i in container)
 
-                        message = tag
+                        checkin_time = datetime.now()
+                        card_id = tag
+
+                        payload = {'card_id': card_id,
+                                   'timestamp': checkin_time.isoformat(),
+                                   'class_id': '1'}
+
+                        json_payload = json.dumps(payload)
 
                         client_socket.sendto(
-                            message.encode(), (server_name, server_port))
+                            json_payload.encode(), (server_name, server_port))
                         sent = datetime.now()
 
                         modified_message, server_address = client_socket.recvfrom(
@@ -114,7 +121,7 @@ class Device():
                         decoded_message = modified_message.decode()
 
                         print(
-                            f'At {sent} sent: {message}\nAt {received} received: {decoded_message}\n')
+                            f'At {sent} sent: {payload}\nAt {received} received: {decoded_message}\n')
 
                         if decoded_message == 'True':
                             s.set_pixels(green_check())
@@ -122,7 +129,7 @@ class Device():
                             s.set_pixels(red_x())
                         else:
                             s.set_pixels(red_q())
-                            print("Error")
+                            print("ERROR: Unknown response from server")
 
                         container = []
 
@@ -132,23 +139,23 @@ class Device():
                     else:
                         container.append(digit)
 
-        except:
+        except Exception as ex:
             device.ungrab()
-            print('WARNING: Qutting with exception')
+            print('WARNING: Qutting with exception:\n' + str(ex))
 
 
 if __name__ == '__main__':
-    print("Don't forget to change the server IP and port in config.json")
+    print("INFO: Don't forget to change the server IP and port in config.json")
 
     with open('config.json') as f:
-        data = json.load(f)
+        config = json.load(f)
 
     # UDP server info
-    server_name = data.get('server_name', 'localhost')
-    server_port = data.get('port', 50000)
+    server_name = config.get('server_name', 'localhost')
+    server_port = config.get('port', 50000)
 
-    print(f'Connecting the server: {server_name}')
-    print(f'Server port is: {server_port}')
+    print(f'INFO: Connecting the server: {server_name}')
+    print(f'INFO: Server port is: {server_port}')
 
     client_socket = socket(AF_INET, SOCK_DGRAM)
     client_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)

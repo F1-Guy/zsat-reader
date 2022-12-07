@@ -1,10 +1,10 @@
-from socket import *
-import evdev
 import time
+import json
+import evdev
 from datetime import datetime
+from socket import *
 from evdev import categorize, ecodes
 from sense_hat import SenseHat
-import json
 
 # Sense Hat setup
 s = SenseHat()
@@ -53,11 +53,11 @@ def red_q():
     logo = [
         O, O, O, R, O, O, O, O,
         O, O, R, O, R, O, O, O,
-        O, O, R, O, R, O, O, O,
-        O, O, O, O, R, O, O, O,
+        O, R, O, O, O, R, O, O,
+        O, O, O, O, O, R, O, O,
         O, O, O, O, R, O, O, O,
         O, O, O, R, O, O, O, O,
-        O, O, O, O, O, O, O, O,
+        O, O, O, R, O, O, O, O,
         O, O, O, R, O, O, O, O,
     ]
     return logo
@@ -106,7 +106,7 @@ class Device():
 
                         payload = {'card_id': card_id,
                                    'timestamp': checkin_time.isoformat(),
-                                   'class_id': '1'}
+                                   'lesson_id': 1}
 
                         json_payload = json.dumps(payload)
 
@@ -114,18 +114,18 @@ class Device():
                             json_payload.encode(), (server_name, server_port))
                         sent = datetime.now()
 
-                        modified_message, server_address = client_socket.recvfrom(
-                            2048)
+                        response, server_address = client_socket.recvfrom(2048)
+
                         received = datetime.now()
 
-                        decoded_message = modified_message.decode()
+                        decoded_message = response.decode()
 
                         print(
-                            f'At {sent} sent: {payload}\nAt {received} received: {decoded_message}\n')
+                            'At {} sent: {}\nAt {} received: {}\n'.format(sent, received, payload, decoded_message))
 
-                        if decoded_message == 'True':
+                        if decoded_message == 'Success':
                             s.set_pixels(green_check())
-                        elif decoded_message == 'False':
+                        elif decoded_message == 'Failure':
                             s.set_pixels(red_x())
                         else:
                             s.set_pixels(red_q())
@@ -151,11 +151,11 @@ if __name__ == '__main__':
         config = json.load(f)
 
     # UDP server info
-    server_name = config.get('server_name', 'localhost')
-    server_port = config.get('port', 50000)
+    server_name = config.get('server_name', 'NOT SET')
+    server_port = config.get('port', 0)
 
-    print(f'INFO: Connecting the server: {server_name}')
-    print(f'INFO: Server port is: {server_port}')
+    print('INFO: Connecting the server: {}'.format(server_name))
+    print('INFO: Server port is: {}'.format(server_port))
 
     client_socket = socket(AF_INET, SOCK_DGRAM)
     client_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)

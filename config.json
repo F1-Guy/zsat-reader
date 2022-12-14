@@ -1,5 +1,5 @@
 {
     "server_name": "Server IP",
     "port": 30000,
-    "api_url": "https://zsatservice.azurewebsites.net/api/Attendances"
+    "api_url": "https://zsatservice.azurewebsites.net/api/Attendances/Register"
 }
